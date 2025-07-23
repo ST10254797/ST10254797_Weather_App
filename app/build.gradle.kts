@@ -52,4 +52,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Biometric API support library
+    implementation("androidx.biometric:biometric:1.2.0-alpha04")  // or latest stable version
 }

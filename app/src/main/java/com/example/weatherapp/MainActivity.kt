@@ -18,6 +18,11 @@ import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.*
 import com.google.android.gms.tasks.CancellationTokenSource
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import androidx.appcompat.app.AlertDialog
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -61,6 +66,8 @@ class MainActivity : AppCompatActivity() {
         logoutButton = findViewById(R.id.logoutButton)
 
         weatherIconImageView.visibility = ImageView.GONE
+
+        promptBiometricEnrollment()
 
         logoutButton.setOnClickListener {
             logoutUser()
@@ -107,6 +114,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+    private fun promptBiometricEnrollment() {
+        val biometricManager = BiometricManager.from(this)
+        if (biometricManager.canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS) {
+            val sharedPref = getSharedPreferences("app_prefs", MODE_PRIVATE)
+            val isBiometricEnabled = sharedPref.getBoolean("biometric_enabled", false)
+
+            if (!isBiometricEnabled) {
+                AlertDialog.Builder(this)
+                    .setTitle("Enable Biometric Login?")
+                    .setMessage("Would you like to use biometric login for faster access next time?")
+                    .setPositiveButton("Yes") { dialog, _ ->
+                        sharedPref.edit().putBoolean("biometric_enabled", true).apply()
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton("No") { dialog, _ ->
+                        sharedPref.edit().putBoolean("biometric_enabled", false).apply()
+                        dialog.dismiss()
+                    }
+                    .show()
+            }
+        }
+    }
+
 
     private fun fetchLocationAndWeather() {
         try {
