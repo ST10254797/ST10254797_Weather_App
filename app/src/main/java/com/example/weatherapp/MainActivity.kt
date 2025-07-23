@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.net.URL
+import java.net.URLEncoder
 
 class MainActivity : AppCompatActivity() {
 
@@ -30,8 +31,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getWeather(city: String, weatherTextView: TextView) {
-        val cityUrl = "http://api.openweathermap.org/data/2.5/weather?q=$city&appid=$apiKey&units=$unit"
+    private fun getWeather(cityInput: String, weatherTextView: TextView) {
+        val city = URLEncoder.encode(cityInput.trim(), "UTF-8")
+        val cityUrl = "https://api.openweathermap.org/data/2.5/weather?q=$city&appid=$apiKey&units=$unit"
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -49,7 +51,7 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    weatherTextView.text = "City not found or error occurred"
+                    weatherTextView.text = "Error: ${e.localizedMessage}"
                 }
             }
         }
