@@ -58,19 +58,27 @@ class MainActivity : AppCompatActivity() {
                 val result = "City: $cityName\nTemperature: $temp°C\nCondition: $description"
                 val iconUrl = "https://openweathermap.org/img/wn/${iconCode}.png"
 
-                // Log the icon URL for debugging
-                Log.d("WeatherIconDebug", "Icon URL: $iconUrl")
-
                 withContext(Dispatchers.Main) {
                     weatherTextView.text = result
 
+                    // Make icon visible
                     weatherIconImageView.visibility = ImageView.VISIBLE
 
-                    // Use Glide with placeholders and error images
+                    // Increase icon size dynamically to ~200dp
+                    val scale = resources.displayMetrics.density
+                    val newSize = (200 * scale).toInt()
+
+                    val params = weatherIconImageView.layoutParams
+                    params.width = newSize
+                    params.height = newSize
+                    weatherIconImageView.layoutParams = params
+                    weatherIconImageView.requestLayout()
+
+                    // Load icon with Glide
                     Glide.with(this@MainActivity)
                         .load(iconUrl)
-                        .placeholder(android.R.drawable.progress_indeterminate_horizontal) // system default loading
-                        .error(android.R.drawable.stat_notify_error) // system error icon
+                        .placeholder(android.R.drawable.progress_indeterminate_horizontal)
+                        .error(android.R.drawable.stat_notify_error)
                         .into(weatherIconImageView)
                 }
             } catch (e: Exception) {
@@ -81,4 +89,5 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
 }
