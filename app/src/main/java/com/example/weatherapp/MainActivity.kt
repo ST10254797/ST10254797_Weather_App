@@ -9,6 +9,9 @@ import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.net.URL
 import java.net.URLEncoder
+import com.google.firebase.auth.FirebaseAuth
+import android.content.Intent
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -23,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sunriseTextView: TextView
     private lateinit var sunsetTextView: TextView
 
+    private lateinit var logoutButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +47,11 @@ class MainActivity : AppCompatActivity() {
 
         weatherIconImageView.visibility = ImageView.GONE
 
+        logoutButton = findViewById(R.id.logoutButton)
+        logoutButton.setOnClickListener {
+            logoutUser()
+        }
+
         searchButton.setOnClickListener {
             val city = cityEditText.text.toString().trim()
             if (city.isNotEmpty()) {
@@ -51,6 +60,15 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please enter a city name", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun logoutUser() {
+        FirebaseAuth.getInstance().signOut()
+        Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show()
+        val intent = Intent(this, SignInActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 
     private fun getWeather(cityInput: String) {
