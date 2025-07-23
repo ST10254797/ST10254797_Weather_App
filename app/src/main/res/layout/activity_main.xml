@@ -58,7 +58,6 @@
 
     </FrameLayout>
 
-
     <TextView
         android:id="@+id/weatherTextView"
         android:layout_width="match_parent"
@@ -71,5 +70,57 @@
         android:background="#FFFFFF"
         android:elevation="2dp"
         android:layout_marginTop="16dp" />
+
+    <!-- New details added here -->
+
+    <TextView
+        android:id="@+id/humidityTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:textColor="#37474F"
+        android:paddingTop="8dp"
+        android:gravity="center"
+        android:text="" />
+
+    <TextView
+        android:id="@+id/windTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:textColor="#37474F"
+        android:paddingTop="8dp"
+        android:gravity="center"
+        android:text="" />
+
+    <TextView
+        android:id="@+id/pressureTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:textColor="#37474F"
+        android:paddingTop="8dp"
+        android:gravity="center"
+        android:text="" />
+
+    <TextView
+        android:id="@+id/sunriseTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:textColor="#37474F"
+        android:paddingTop="8dp"
+        android:gravity="center"
+        android:text="" />
+
+    <TextView
+        android:id="@+id/sunsetTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:textColor="#37474F"
+        android:paddingTop="8dp"
+        android:gravity="center"
+        android:text="" />
 
 </LinearLayout>
