@@ -1,22 +1,29 @@
 package com.example.weatherapp
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Location
 import android.os.Bundle
-import android.util.Log
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import com.bumptech.glide.Glide
+import com.google.android.gms.location.*
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.net.URL
 import java.net.URLEncoder
-import com.google.firebase.auth.FirebaseAuth
-import android.content.Intent
-
+import java.text.SimpleDateFormat
+import java.util.*
+import com.google.android.gms.tasks.CancellationTokenSource
 
 class MainActivity : AppCompatActivity() {
 
     private val apiKey = "c2cfb03bac68bbf380f03cdbc32a83e4"
     private val unit = "metric"
+    private val LOCATION_PERMISSION_REQUEST_CODE = 1001
 
     private lateinit var weatherTextView: TextView
     private lateinit var weatherIconImageView: ImageView
@@ -25,16 +32,24 @@ class MainActivity : AppCompatActivity() {
     private lateinit var windTextView: TextView
     private lateinit var sunriseTextView: TextView
     private lateinit var sunsetTextView: TextView
-
     private lateinit var logoutButton: Button
+    private lateinit var currentLocationButton: Button
+    private lateinit var parentLayout: LinearLayout
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         val cityEditText = findViewById<EditText>(R.id.cityEditText)
         val searchButton = findViewById<Button>(R.id.searchButton)
+
+        currentLocationButton = findViewById(R.id.currentLocationButton)
+        parentLayout = findViewById(R.id.parentLayout)
 
         weatherTextView = findViewById(R.id.weatherTextView)
         weatherIconImageView = findViewById(R.id.weatherIconImageView)
@@ -43,11 +58,10 @@ class MainActivity : AppCompatActivity() {
         windTextView = findViewById(R.id.windTextView)
         sunriseTextView = findViewById(R.id.sunriseTextView)
         sunsetTextView = findViewById(R.id.sunsetTextView)
-
+        logoutButton = findViewById(R.id.logoutButton)
 
         weatherIconImageView.visibility = ImageView.GONE
 
-        logoutButton = findViewById(R.id.logoutButton)
         logoutButton.setOnClickListener {
             logoutUser()
         }
@@ -60,6 +74,10 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please enter a city name", Toast.LENGTH_SHORT).show()
             }
         }
+
+        currentLocationButton.setOnClickListener {
+            checkLocationPermissionAndFetch()
+        }
     }
 
     private fun logoutUser() {
@@ -71,33 +89,65 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
+    private fun checkLocationPermissionAndFetch() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST_CODE)
+        } else {
+            fetchLocationAndWeather()
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                fetchLocationAndWeather()
+            } else {
+                Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun fetchLocationAndWeather() {
+        try {
+            fusedLocationClient.getCurrentLocation(
+                LocationRequest.PRIORITY_HIGH_ACCURACY,
+                CancellationTokenSource().token
+            ).addOnSuccessListener { location: Location? ->
+                if (location != null) {
+                    val lat = location.latitude
+                    val lon = location.longitude
+                    getWeatherByCoordinates(lat, lon)
+                } else {
+                    Toast.makeText(this, "Unable to get location", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: SecurityException) {
+            Toast.makeText(this, "Location permission required", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun getWeather(cityInput: String) {
         val city = URLEncoder.encode(cityInput.trim(), "UTF-8")
         val cityUrl = "https://api.openweathermap.org/data/2.5/weather?q=$city&appid=$apiKey&units=$unit"
+        fetchWeatherFromUrl(cityUrl)
+    }
 
-        // Helper functions for formatting
-        fun formatTime(unixTime: Long): String {
-            val date = java.util.Date(unixTime * 1000)
-            val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
-            sdf.timeZone = java.util.TimeZone.getDefault()
-            return sdf.format(date)
-        }
+    private fun getWeatherByCoordinates(lat: Double, lon: Double) {
+        val url = "https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$apiKey&units=$unit"
+        fetchWeatherFromUrl(url)
+    }
 
-        fun windDirection(deg: Int): String {
-            val directions = listOf("N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW")
-            val index = ((deg / 22.5) + 0.5).toInt() % 16
-            return directions[index]
-        }
-
+    private fun fetchWeatherFromUrl(url: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = URL(cityUrl).readText()
+                val response = URL(url).readText()
                 val jsonObject = JSONObject(response)
 
                 val weatherArray = jsonObject.getJSONArray("weather")
                 val weatherObject = weatherArray.getJSONObject(0)
                 val description = weatherObject.getString("description")
-                val iconCode = weatherObject.getString("icon")  // e.g. "04d"
+                val iconCode = weatherObject.getString("icon")
 
                 val mainObject = jsonObject.getJSONObject("main")
                 val temp = mainObject.getDouble("temp")
@@ -123,14 +173,12 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     weatherTextView.text = result
 
-                    // Update extra details
                     humidityTextView.text = "Humidity: $humidity%"
                     pressureTextView.text = "Pressure: $pressure hPa"
                     windTextView.text = "Wind: $windSpeed m/s $windDirStr"
                     sunriseTextView.text = "Sunrise: $sunriseTime"
                     sunsetTextView.text = "Sunset: $sunsetTime"
 
-                    // Show icon and set size
                     weatherIconImageView.visibility = ImageView.VISIBLE
                     val scale = resources.displayMetrics.density
                     val newSize = (200 * scale).toInt()
@@ -150,8 +198,6 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     weatherTextView.text = "Error: ${e.localizedMessage}"
                     weatherIconImageView.visibility = ImageView.GONE
-
-                    // Clear extra info on error
                     humidityTextView.text = ""
                     pressureTextView.text = ""
                     windTextView.text = ""
@@ -162,5 +208,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun formatTime(unixTime: Long): String {
+        val date = Date(unixTime * 1000)
+        val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
+        sdf.timeZone = TimeZone.getDefault()
+        return sdf.format(date)
+    }
 
+    private fun windDirection(deg: Int): String {
+        val directions = listOf("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW")
+        val index = ((deg / 22.5) + 0.5).toInt() % 16
+        return directions[index]
+    }
 }
